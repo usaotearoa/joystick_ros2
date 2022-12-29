@@ -100,16 +100,16 @@ F310_CODE_MAP = {
 }
 
 F310_VALUE_MAP = {
-    0: (-32768, 32767),
-    1: (-32768, 32767),
-    2: (-32768, 32767),
-    3: (-32768, 32767),
-    4: (-1, 1),
-    5: (-1, 1),
-    6: (-1, 1),
-    7: (-1, 1),
-    8: (-1, 1),
-    9: (-1, 1),
+    0: (1, -1),
+    1: (-1, 1),
+    2: (255, 0),
+    3: (0, 255),
+    4: (255, 0),
+    5: (0, 255),
+    # 6: (-1, 1),
+    # 7: (-1, 1),
+    # 8: (-1, 1),
+    # 9: (-1, 1),
 }
 
 # Logitech Gamepad F710
@@ -204,8 +204,9 @@ class JoystickRos2(Node):
         self.joy = Joy()
         self.joy.header = Header()
         self.joy.header.frame_id = ''
-        self.joy.axes = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        self.joy.buttons = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        # self.joy.axes = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.joy.axes = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.joy.buttons = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
         # Joy publisher
         self.publisher_ = self.create_publisher(Joy, 'joy', 10)
@@ -272,21 +273,24 @@ class JoystickRos2(Node):
                     for event in events:
                         if (event.code in JOYSTICK_CODE_VALUE_MAP[event.device.name][0]):
                             key_code = JOYSTICK_CODE_VALUE_MAP[event.device.name][0][event.code]
-                            print(F"Debug key_code: {key_code}, event.code: {event.code}, event.device.name: {event.device.name}")
+                            # print(F"Debug key_code: {key_code}, event.code: {event.code}, event.device.name: {event.device.name}")
                             if (event.ev_type == 'Key'):
-                                print(F"1ev_type: {event.ev_type}, key_code: {key_code}, state: {event.state}")
+                                # print(F"1ev_type: {event.ev_type}, key_code: {key_code}, state: {event.state}")
                                 self.joy.buttons[key_code] = event.state
                                 self.publish_joy()
                                 self.last_event = event
                             elif (event.ev_type == 'Absolute'):
-                                # print(F"2ev_type: {event.ev_type}, key_code: {key_code}, state: {event.state}")
+                                print(F"2ev_type: {event.ev_type}, key_code: {key_code}, state: {event.state}")
                                 value_range = JOYSTICK_CODE_VALUE_MAP[event.device.name][1][key_code]
                                 self.joy.axes[key_code] = self.normalize_key_value(value_range[0], value_range[1], event.state)
+                                print(F"Debuk: value_range[0]: {value_range[0]}")
+                                print(F"Debuk: value_range[1]: {value_range[1]}")
+                                print(F"Debuk: event.state: {event.state}")
                                 if (self.last_event is None) or (self.last_event.code != event.code) or (time.time() - self.last_publish_time > self.coalesce_interval):
                                     self.publish_joy()
                                 self.last_event = event
-                        else:
-                            print(F"Debug event.code: {event.code}, event.device.name: {event.device.name}, event.ev_type: {event.ev_type}")
+                        # else:
+                            # print(F"Debug event.code: {event.code}, event.device.name: {event.device.name}, event.ev_type: {event.ev_type}")
                             # print(event)
                 else:
                     print(F"event: {events}, not in events!")
