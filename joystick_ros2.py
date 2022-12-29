@@ -1,17 +1,3 @@
-# Copyright 2017 Muhammad Furqan Habibi
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import platform
 import time
 from math import modf
@@ -91,6 +77,41 @@ PS4_VALUE_MAP = {
     7: (-1, 1)
 }
 
+# Logitech Gamepad F310
+F310_CODE_MAP = {
+    'ABS_HAT0X': 0,
+    'ABS_HAT0Y': 1,
+    'ABS_Z': 2,
+    'ABS_RZ': 3,
+    'ABS_X': 4,
+    'ABS_Y': 5,
+    'BTN_TRIGGER': 0,
+    'BTN_THUMB': 1,
+    'BTN_THUMB2': 2,
+    'BTN_TOP': 3,
+    'BTN_TOP2': 4,
+    'BTN_PINKIE': 5,
+    'BTN_BASE': 6,
+    'BTN_BASE2': 7,
+    'BTN_BASE3': 8,
+    'BTN_BASE4': 9,
+    'BTN_BASE5': 10,
+    'BTN_BASE6': 11,
+}
+
+F310_VALUE_MAP = {
+    0: (-32768, 32767),
+    1: (-32768, 32767),
+    2: (-32768, 32767),
+    3: (-32768, 32767),
+    4: (-1, 1),
+    5: (-1, 1),
+    6: (-1, 1),
+    7: (-1, 1),
+    8: (-1, 1),
+    9: (-1, 1),
+}
+
 # Logitech Gamepad F710
 F710_CODE_MAP = {
     'ABS_X': 0,
@@ -163,6 +184,7 @@ JOYSTICK_CODE_VALUE_MAP = {
     'Microsoft X-Box 360 pad': (XINPUT_CODE_MAP, XINPUT_VALUE_MAP),
     'Sony Computer Entertainment Wireless Controller': (PS4_CODE_MAP, PS4_VALUE_MAP),
     'Logitech Gamepad F710': (F710_CODE_MAP, F710_VALUE_MAP),
+    'Logitech Logitech Dual Action': (F310_CODE_MAP, F310_VALUE_MAP),
     'Microsoft X-Box One pad': (XONE_CODE_MAP, XONE_VALUE_MAP)
 }
 
@@ -186,7 +208,7 @@ class JoystickRos2(Node):
         self.joy.buttons = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
         # Joy publisher
-        self.publisher_ = self.create_publisher(Joy, 'joy')
+        self.publisher_ = self.create_publisher(Joy, 'joy', 10)
 
         # logic params
         self.last_event = None
@@ -213,6 +235,7 @@ class JoystickRos2(Node):
             # get the first joystick
             try:
                 gamepad = device_manager.gamepads[0]
+                print(F"Gamepad: {gamepad}")
             except IndexError:
                 print('Joystick not found. Will retry every second.')
                 time.sleep(1)
@@ -221,7 +244,7 @@ class JoystickRos2(Node):
 
             # detected joystick is not keymapped yet
             if (gamepad.name not in JOYSTICK_CODE_VALUE_MAP):
-                print('Sorry, joystick type not supported yet! Please plug in supported joystick')
+                print(F'Sorry, {gamepad.name} - joystick type not supported yet! Please plug in supported joystick')
                 time.sleep(1)
                 device_manager.find_devices()
                 continue
@@ -238,6 +261,7 @@ class JoystickRos2(Node):
             while True:
                 try:
                     events = gamepad._do_iter()
+                    # print(F"events: {events}")
                 # check unplugged joystick
                 except OSError:
                     print('Joystick not found. Will retry every second.')
@@ -248,17 +272,24 @@ class JoystickRos2(Node):
                     for event in events:
                         if (event.code in JOYSTICK_CODE_VALUE_MAP[event.device.name][0]):
                             key_code = JOYSTICK_CODE_VALUE_MAP[event.device.name][0][event.code]
+                            print(F"Debug key_code: {key_code}, event.code: {event.code}, event.device.name: {event.device.name}")
                             if (event.ev_type == 'Key'):
+                                print(F"1ev_type: {event.ev_type}, key_code: {key_code}, state: {event.state}")
                                 self.joy.buttons[key_code] = event.state
                                 self.publish_joy()
                                 self.last_event = event
                             elif (event.ev_type == 'Absolute'):
+                                # print(F"2ev_type: {event.ev_type}, key_code: {key_code}, state: {event.state}")
                                 value_range = JOYSTICK_CODE_VALUE_MAP[event.device.name][1][key_code]
                                 self.joy.axes[key_code] = self.normalize_key_value(value_range[0], value_range[1], event.state)
                                 if (self.last_event is None) or (self.last_event.code != event.code) or (time.time() - self.last_publish_time > self.coalesce_interval):
                                     self.publish_joy()
                                 self.last_event = event
+                        else:
+                            print(F"Debug event.code: {event.code}, event.device.name: {event.device.name}, event.ev_type: {event.ev_type}")
+                            # print(event)
                 else:
+                    print(F"event: {events}, not in events!")
                     break
             ## autorepeat
             if ((self.autorepeat_rate > 0.0) and (time.time() - self.last_publish_time > 1/self.autorepeat_rate)):
