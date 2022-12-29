@@ -106,10 +106,6 @@ F310_VALUE_MAP = {
     3: (0, 255),
     4: (255, 0),
     5: (0, 255),
-    # 6: (-1, 1),
-    # 7: (-1, 1),
-    # 8: (-1, 1),
-    # 9: (-1, 1),
 }
 
 # Logitech Gamepad F710
@@ -204,8 +200,8 @@ class JoystickRos2(Node):
         self.joy = Joy()
         self.joy.header = Header()
         self.joy.header.frame_id = ''
-        # self.joy.axes = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        self.joy.axes = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.joy.axes = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        # self.joy.axes = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.joy.buttons = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
         # Joy publisher
@@ -245,7 +241,7 @@ class JoystickRos2(Node):
 
             # detected joystick is not keymapped yet
             if (gamepad.name not in JOYSTICK_CODE_VALUE_MAP):
-                print(F'Sorry, {gamepad.name} - joystick type not supported yet! Please plug in supported joystick')
+                print(F'Sorry, {gamepad.name} - joystick type not supported! Please plug in supported joystick')
                 time.sleep(1)
                 device_manager.find_devices()
                 continue
@@ -283,14 +279,14 @@ class JoystickRos2(Node):
                                 print(F"2ev_type: {event.ev_type}, key_code: {key_code}, state: {event.state}")
                                 value_range = JOYSTICK_CODE_VALUE_MAP[event.device.name][1][key_code]
                                 self.joy.axes[key_code] = self.normalize_key_value(value_range[0], value_range[1], event.state)
-                                print(F"Debuk: value_range[0]: {value_range[0]}")
-                                print(F"Debuk: value_range[1]: {value_range[1]}")
+                                # print(F"Debuk: value_range[0]: {value_range[0]}")
+                                # print(F"Debuk: value_range[1]: {value_range[1]}")
                                 print(F"Debuk: event.state: {event.state}")
                                 if (self.last_event is None) or (self.last_event.code != event.code) or (time.time() - self.last_publish_time > self.coalesce_interval):
                                     self.publish_joy()
                                 self.last_event = event
-                        # else:
-                            # print(F"Debug event.code: {event.code}, event.device.name: {event.device.name}, event.ev_type: {event.ev_type}")
+                        else:
+                            print(F"_else_ event.code: {event.code}, event.device.name: {event.device.name}, event.ev_type: {event.ev_type}")
                             # print(event)
                 else:
                     print(F"event: {events}, not in events!")
